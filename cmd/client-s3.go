@@ -33,6 +33,7 @@ import (
 
 	"github.com/minio/mc/pkg/httptracer"
 	"github.com/minio/minio-go"
+	"github.com/minio/minio-go/pkg/credentials"
 	"github.com/minio/minio-go/pkg/policy"
 	"github.com/minio/minio-go/pkg/s3utils"
 	"github.com/minio/minio/pkg/probe"
@@ -104,14 +105,14 @@ func newFactory() func(config *Config) (Client, *probe.Error) {
 		var found bool
 		if api, found = clientCache[confSum]; !found {
 			// Not found. Instantiate a new minio
-			var e error
-			if strings.ToUpper(config.Signature) == "S3V2" {
-				// if Signature version '2' use NewV2 directly.
-				api, e = minio.NewV2(hostName, config.AccessKey, config.SecretKey, useTLS)
+			var creds *credentials.Credentials
+			if strings.ToLower(config.Signature) == "s3v2" {
+				creds = credentials.NewStaticV2(config.AccessKey, config.SecretKey, "")
 			} else {
-				// if Signature version '4' use NewV4 directly.
-				api, e = minio.NewV4(hostName, config.AccessKey, config.SecretKey, useTLS)
+				creds = credentials.NewStaticV4(config.AccessKey, config.SecretKey, "")
 			}
+			var e error
+			api, e = minio.NewWithCredentials(hostName, creds, useTLS, "")
 			if e != nil {
 				return nil, probe.NewError(e)
 			}
