@@ -30,6 +30,7 @@ import (
 
 	"github.com/minio/mc/pkg/hookreader"
 	"github.com/minio/mc/pkg/ioutils"
+	"github.com/minio/minio-go/pkg/credentials"
 	"github.com/minio/minio/pkg/probe"
 	"github.com/rjeczalik/notify"
 )
@@ -92,6 +93,13 @@ func isIgnoredFile(filename string) bool {
 // URL get url.
 func (f *fsClient) GetURL() clientURL {
 	return *f.PathURL
+}
+
+func (f *fsClient) Login(stsEndpoint string) (credentials.Value, string, *probe.Error) {
+	return credentials.Value{}, "", probe.NewError(APINotImplemented{
+		API:     "Login",
+		APIType: "filesystem",
+	})
 }
 
 // Watches for all fs events on an input path.

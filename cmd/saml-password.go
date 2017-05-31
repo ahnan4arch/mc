@@ -19,26 +19,23 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"syscall"
 
+	"github.com/minio/minio/pkg/probe"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
 type samlAttr struct {
-	username   string
-	password   string
-	providerID string
-	idpURL     string
+	username string
+	password string
+	idpURL   string
 }
 
 const (
-	// Identity provider uat is only used for testing purposes.
-	idpUATEntryURL = "https://idp-uat.stanford.edu/idp/profile/SAML2/Unsolicited/SSO?providerId=%s"
-
-	// Indentity provider Prod is only used for production purposes.
-	idpProdEntryURL = "https://idp.stanford.edu/idp/profile/SAML2/Unsolicited/SSO?providerId=%s"
+	unsolicitedSSOResource = "/idp/profile/SAML2/Unsolicited/SSO"
 )
 
 func readSAMLAttr() samlAttr {
@@ -60,19 +57,29 @@ func readSAMLAttr() samlAttr {
 	if providerID == "" {
 		providerID = "https://rosalind.stanford.edu/"
 	}
+	// Provider ID is opaque string doesn't have to be a proper URL.
 
 	fmt.Print("SAML IdP URL: [https://idp-uat.stanford.edu]: ")
 	idpURL, _ := reader.ReadString('\n')
 	idpURL = strings.TrimSpace(idpURL)
 	if idpURL == "" {
-		idpURL = idpUATEntryURL
+		idpURL = "https://idp-uat.stanford.edu"
 	}
+
+	query := url.Values{}
+	query.Set("providerId", providerID)
+
+	u, e := url.Parse(idpURL)
+	fatalIf(probe.NewError(e).Trace(idpURL), "Unable to parse identity provider URL")
+
+	u.Path = unsolicitedSSOResource
+	u.RawQuery = query.Encode()
+
 	fmt.Println()
 
 	return samlAttr{
-		username:   username,
-		password:   password,
-		providerID: providerID,
-		idpURL:     idpURL,
+		username: username,
+		password: password,
+		idpURL:   u.String(),
 	}
 }

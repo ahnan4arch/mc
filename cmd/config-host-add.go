@@ -111,7 +111,7 @@ func addHost(alias string, hostCfgV8 hostConfigV8) {
 func getSAMLAssertion(sa samlAttr) (string, *probe.Error) {
 	httpSess := grequests.NewSession(nil)
 
-	resp, e := httpSess.Get(fmt.Sprintf(sa.idpURL, sa.providerID), nil)
+	resp, e := httpSess.Get(sa.idpURL, nil)
 	if e != nil {
 		return "", probe.NewError(e)
 	}
@@ -144,6 +144,7 @@ type signatureAttr struct {
 	accessKey string
 	secretKey string
 	signType  string
+	idpURL    string
 }
 
 func (s signatureAttr) checkSignatureAttrs() {
@@ -230,25 +231,15 @@ func mainConfigHostAdd(ctx *cli.Context) error {
 		endpoint = strings.TrimSpace(endpoint)
 
 		if strings.TrimSpace(authType) == "saml" {
-			// Login and obtain saml assertion.
-			samlAssertion, err := getSAMLAssertion(readSAMLAttr())
-			fatalIf(err.Trace(), "Unable to fetch SAML assertion.")
-
-			// Initialize SAMLProvider credentials.
-			creds := credentials.New(&SAMLProvider{
-				endpoint:      endpoint,
-				samlAssertion: samlAssertion,
-			})
-			credsValue, e := creds.Get()
-			fatalIf(probe.NewError(e), "Unable to fetch new credentials")
-
+			credsValue, idpURL, err := getSTSCreds(endpoint)
+			fatalIf(err.Trace(endpoint), "Unable to fetch sts credentials")
 			sa = signatureAttr{
 				alias:     alias,
 				endpoint:  endpoint,
 				accessKey: credsValue.AccessKeyID,
 				secretKey: credsValue.SecretAccessKey,
-				// Signature v4 is defaulted for rolling access keys.
-				signType: credentials.SignatureV4.String(),
+				signType:  credentials.SignatureV4.String(), // Signature v4 is default signer for all rolling access keys.
+				idpURL:    idpURL,
 			}
 		} else {
 			sa = readSignatureAttr()
@@ -263,6 +254,7 @@ func mainConfigHostAdd(ctx *cli.Context) error {
 		AccessKey: sa.accessKey,
 		SecretKey: sa.secretKey,
 		API:       sa.signType,
+		IdpURL:    sa.idpURL,
 	}
 
 	addHost(sa.alias, hostCfg) // Add a host with specified credentials.
