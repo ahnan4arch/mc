@@ -21,7 +21,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/minio/minio-go/pkg/credentials"
 	"github.com/minio/minio/pkg/probe"
 )
 
@@ -70,9 +69,6 @@ type Client interface {
 
 	// GetURL returns back internal url
 	GetURL() clientURL
-
-	// Login() attempts a new STS request to fetch credentials.
-	Login(stsEndpoint string) (cvalue credentials.Value, idpURL string, err *probe.Error)
 }
 
 // Content container for content metadata
@@ -90,6 +86,7 @@ type Config struct {
 	SecretKey   string
 	Signature   string
 	HostURL     string
+	IdpURL      string
 	AppName     string
 	AppVersion  string
 	AppComments []string

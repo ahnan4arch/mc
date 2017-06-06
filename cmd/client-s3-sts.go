@@ -74,12 +74,7 @@ type credential struct {
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/AssumeRoleWithSAMLResponse
 type AssumeRoleWithSAMLResult struct {
 	// The temporary security credentials, which include an access key ID, a secret
-	// access key, and a security (or session) token.
-	//
-	// Note: The size of the security token that STS APIs return is not fixed. We
-	// strongly recommend that you make no assumptions about the maximum size. As
-	// of this writing, the typical size is less than 4096 bytes, but that can vary.
-	// Also, future updates to AWS might require larger sizes.
+	// access key, and an expiration.
 	Credentials credential `xml:",omitempty"`
 }
 
